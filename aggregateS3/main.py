@@ -9,6 +9,7 @@ MIN_SIZE_BYTES = 100 * 1024 * 1024  #Min 100MB
 OUTPUT_FILE = "%d/%m/%Y %H:%M:%S"
 DELETE_OLD_FILE = False
 MAX_KEYS = 1000
+BUCKET_DOWNLOAD_PREFIX = ""
 
 def lambda_handler(event, context):
 

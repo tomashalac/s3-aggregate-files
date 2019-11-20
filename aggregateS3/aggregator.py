@@ -11,6 +11,7 @@ files = []
 
 def download_all_files_in_bucket():
     response = s3.list_objects(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=main.MAX_KEYS)
+    response = s3.list_objects(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=main.MAX_KEYS, Prefix=main.BUCKET_DOWNLOAD_PREFIX)
     for file in response['Contents']:
         file_key = file["Key"]
         filename = "/tmp/" + str(randint(0, 10000000))
