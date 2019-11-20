@@ -1,47 +1,31 @@
 import boto3
 from random import randint
 import os
-from aggregateS3 import main
+from aggregateS3 import main, parallel_download
 from datetime import datetime
 import hashlib
 
 s3 = boto3.client("s3")
 
-files = []
-
-def download_all_files_in_bucket():
-    response = s3.list_objects(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=main.MAX_KEYS)
-    response = s3.list_objects(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=main.MAX_KEYS, Prefix=main.BUCKET_DOWNLOAD_PREFIX)
-    for file in response['Contents']:
-        file_key = file["Key"]
-        filename = "/tmp/" + str(randint(0, 10000000))
-
-        if file_key[-1] == "/":
-            print("Skiping folder: " + file_key)
-            continue
-
-        s3.download_file(Bucket=main.BUCKET_DOWNLOAD, Key=file_key, Filename=filename)
-        files.append([filename, file_key])
-
-
-def aggregate_files():
+def aggregate_files(list_keys):
     aggregate = []
     size = 0
 
-    for file, file_key in files:
-        file_size = os.path.getsize(file)
+    for file_key in list_keys:
+        filename = "/tmp/" + file_key.replace('/', '_')
+        file_size = os.path.getsize(filename)
 
         if size + file_size > main.MAX_SIZE_BYTES:
             do_aggregate(aggregate, size)
             size = 0
             aggregate = []
 
-        aggregate.append([file, file_key])
+        aggregate.append([filename, file_key])
         size += file_size
 
     if size > 0:
         if size < main.MIN_SIZE_BYTES:
-            print("The upload was canceled because the file weighs less than the minimum, file size: " + human_readable_size(size))
+            print("The upload was canceled because the file weighs less than the minimum, file size: " + human_readable_size(size) + ", the minimum is: " + human_readable_size(main.MIN_SIZE_BYTES))
             return False
         return do_aggregate(aggregate, size)
     return True

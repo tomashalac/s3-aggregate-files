@@ -1,6 +1,4 @@
-import json
-from aggregateS3 import aggregator
-import glob
+from aggregateS3 import aggregator, parallel_download
 
 BUCKET_DOWNLOAD = "THE-NAME-OF-YOU-S3-BUCKET-FOR-DOWNLOAD"
 BUCKET_UPLOAD = "THE-NAME-OF-YOU-S3-BUCKET-FOR-UPLOAD"
@@ -13,6 +11,6 @@ BUCKET_DOWNLOAD_PREFIX = ""
 
 def lambda_handler(event, context):
 
-    aggregator.download_all_files_in_bucket()
+    list_keys = parallel_download.download_all_files()
 
-    return aggregator.aggregate_files()
+    return aggregator.aggregate_files(list_keys)
