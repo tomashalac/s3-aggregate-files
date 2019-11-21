@@ -1,13 +1,13 @@
 import boto3
 from random import randint
 import os
-from aggregateS3 import main, parallel_download
+from aggregateS3 import main, parallel_download, config
 from datetime import datetime
 import hashlib
 
 s3 = boto3.client("s3")
 
-def aggregate_files(list_keys):
+def aggregate_files(list_keys, suffix):
     aggregate = []
     size = 0
 
@@ -15,8 +15,8 @@ def aggregate_files(list_keys):
         filename = "/tmp/" + file_key.replace('/', '_')
         file_size = os.path.getsize(filename)
 
-        if size + file_size > main.MAX_SIZE_BYTES:
-            do_aggregate(aggregate, size)
+        if size + file_size > config.CONFIG.max_size_bytes:
+            do_aggregate(aggregate, size, suffix)
             size = 0
             aggregate = []
 
@@ -24,15 +24,16 @@ def aggregate_files(list_keys):
         size += file_size
 
     if size > 0:
-        if size < main.MIN_SIZE_BYTES:
-            print("The upload was canceled because the file weighs less than the minimum, file size: " + human_readable_size(size) + ", the minimum is: " + human_readable_size(main.MIN_SIZE_BYTES))
+        if size < config.CONFIG.min_size_bytes:
+            print("The upload was canceled because the file weighs less than the minimum, file size: " + human_readable_size(size) +
+                  ", the minimum is: " + human_readable_size(config.CONFIG.min_size_bytes))
             return False
-        return do_aggregate(aggregate, size)
+        return do_aggregate(aggregate, size, suffix)
     return True
 
-def do_aggregate(list_files, total_size):
+def do_aggregate(list_files, total_size, suffix):
 
-    key = datetime.now().strftime(main.OUTPUT_FILE) + ".txt"
+    key = datetime.now().strftime(config.CONFIG.output_file) + "." + suffix
     tmp_filename = str(randint(0, 10000000)) + ".txt"
 
     with open('/tmp/' + tmp_filename, 'wb') as outfile:
@@ -47,10 +48,10 @@ def do_aggregate(list_files, total_size):
 
     # Upload to AWS S3
     print("New file size: " + human_readable_size(os.path.getsize('/tmp/' + tmp_filename)))
-    s3.upload_file(Filename='/tmp/' + tmp_filename, Bucket=main.BUCKET_UPLOAD,
+    s3.upload_file(Filename='/tmp/' + tmp_filename, Bucket=config.CONFIG.bucket_upload,
                    Key=key)
 
-    if main.DELETE_OLD_FILE:
+    if config.CONFIG.delete_old_file:
         #We want to validate that the new file was uploaded before deleting the old ones.
         if is_valid_upload(total_size, key, tmp_filename):
             print("Deleting old files....")
@@ -61,7 +62,7 @@ def do_aggregate(list_files, total_size):
     return True
 
 def is_valid_upload(total_size, key, tmp_filename):
-    head = s3.head_object(Bucket=main.BUCKET_UPLOAD, Key=key)
+    head = s3.head_object(Bucket=config.CONFIG.bucket_upload, Key=key)
 
     if not head:
         print("The file was not found in S3: " + key)
@@ -83,12 +84,12 @@ def is_valid_upload(total_size, key, tmp_filename):
 
 
 def delete_files(list_files):
-    if not main.DELETE_OLD_FILE:
+    if not config.CONFIG.delete_old_file:
         return False
 
     for filename, file_key in list_files:
         print("Deleting key: " + file_key)
-        s3.delete_object(Bucket=main.BUCKET_DOWNLOAD, Key=file_key)
+        s3.delete_object(Bucket=config.CONFIG.bucket_download, Key=file_key)
 
     return True
 

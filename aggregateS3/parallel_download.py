@@ -1,52 +1,65 @@
 from multiprocessing import Process
 import boto3
-from aggregateS3 import main
+from aggregateS3 import main, config
+from pathlib import Path
 
 def private_download(list_keys):
     s3 = boto3.client('s3')
 
     for file_key in list_keys:
         filename = "/tmp/" + file_key.replace('/', '_')
-        s3.download_file(Bucket=main.BUCKET_DOWNLOAD, Key=file_key, Filename=filename)
+        s3.download_file(Bucket=config.CONFIG.bucket_download, Key=file_key, Filename=filename)
 
 def download_all_files():
     actual_count = 0
     s3 = boto3.client('s3')
 
-    key_list, continuation_token = private_list_files_in_bukcet(s3, max_keys=main.MAX_KEYS)
+    key_list, continuation_token, suffix = private_list_files_in_bukcet(s3, suffix=None, max_keys=config.CONFIG.max_keys)
     actual_count += len(key_list)
     private_start_parallel_download(key_list)
 
-    while actual_count < main.MAX_KEYS and continuation_token:
-        new_key_list, marker = private_list_files_in_bukcet(s3, continuation_token, main.MAX_KEYS - actual_count)
+    while actual_count < config.CONFIG.max_keys and continuation_token:
+        new_key_list, marker, _ = private_list_files_in_bukcet(s3, suffix, continuation_token, config.CONFIG.max_keys - actual_count)
+        private_start_parallel_download(new_key_list)
         actual_count += len(new_key_list)
         key_list = key_list + new_key_list
-        private_start_parallel_download(key_list)
 
-    return key_list
+    return key_list, suffix
 
 
-def private_list_files_in_bukcet(s3, continuation_token="", max_keys=1000):
+def private_list_files_in_bukcet(s3, suffix, continuation_token="", max_keys=1000):
     # AWS limit
     if max_keys > 1000:
         max_keys = 1000
 
     if continuation_token:
-        response = s3.list_objects_v2(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=max_keys, Prefix=main.BUCKET_DOWNLOAD_PREFIX, ContinuationToken=continuation_token)
+        response = s3.list_objects_v2(Bucket=config.CONFIG.bucket_download, MaxKeys=max_keys, Prefix=config.CONFIG.bucket_download_prefix, ContinuationToken=continuation_token)
     else:
-        response = s3.list_objects_v2(Bucket=main.BUCKET_DOWNLOAD, MaxKeys=max_keys, Prefix=main.BUCKET_DOWNLOAD_PREFIX)
+        response = s3.list_objects_v2(Bucket=config.CONFIG.bucket_download, MaxKeys=max_keys, Prefix=config.CONFIG.bucket_download_prefix)
 
     print("Downloading "+str(len(response['Contents']))+" files from AWS S3")
     keys_list = []
     for file in response['Contents']:
         file_key = file["Key"]
+        file_suffix = Path(file_key).suffix[1:]
 
         if file_key[-1] == "/":
             print("Skiping folder: " + file_key)
             continue
 
+        if file_suffix.lower() not in main.EXTENSIONS_ALLOWED:
+            print("Skiping file: " + file_key + " suffix is not valid.")
+            continue
+
+        if not suffix:
+            suffix = file_suffix
+
+        if suffix != file_suffix:
+            print("Skiping file: " + file_key + " suffix it is different than the initial: " + suffix)
+            continue
+
         keys_list.append(file_key)
-    return keys_list, response["NextContinuationToken"]
+    return keys_list, response["NextContinuationToken"], suffix
 
 
 def private_start_parallel_download(keys_list):
