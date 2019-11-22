@@ -19,7 +19,7 @@ def download_all_files():
     private_start_parallel_download(key_list)
 
     while actual_count < config.CONFIG.max_keys and continuation_token:
-        new_key_list, marker, _ = private_list_files_in_bukcet(s3, suffix, continuation_token, config.CONFIG.max_keys - actual_count)
+        new_key_list, continuation_token, _ = private_list_files_in_bukcet(s3, suffix, continuation_token, config.CONFIG.max_keys - actual_count)
         private_start_parallel_download(new_key_list)
         actual_count += len(new_key_list)
         key_list = key_list + new_key_list
