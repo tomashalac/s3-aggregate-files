@@ -1,13 +1,14 @@
-import boto3
 from random import randint
 import os
 from aggregateS3 import main, parallel_download, config
 from datetime import datetime
 import hashlib
 
-s3 = boto3.client("s3")
+s3 = None
 
 def aggregate_files(list_keys, suffix):
+    global s3
+    s3 = main.get_boto3()
     aggregate = []
     size = 0
 

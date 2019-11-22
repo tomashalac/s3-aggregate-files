@@ -1,18 +1,18 @@
 from multiprocessing import Process
-import boto3
 from aggregateS3 import main, config
 from pathlib import Path
 
-def private_download(list_keys):
-    s3 = boto3.client('s3')
+def private_download(list_keys, config_obj):
+    config.CONFIG = config_obj
+    s3 = main.get_boto3()
 
     for file_key in list_keys:
-        filename = "/tmp/" + file_key.replace('/', '_')
+        filename = config.CONFIG.local_folder_to_download + file_key.replace('/', '_')
         s3.download_file(Bucket=config.CONFIG.bucket_download, Key=file_key, Filename=filename)
 
 def download_all_files():
     actual_count = 0
-    s3 = boto3.client('s3')
+    s3 = main.get_boto3()
 
     key_list, continuation_token, suffix = private_list_files_in_bukcet(s3, suffix=None, max_keys=config.CONFIG.max_keys)
     actual_count += len(key_list)
@@ -71,7 +71,7 @@ def private_start_parallel_download(keys_list):
 
     for id in range(20):
         # create the process, pass instance and connection
-        process = Process(target=private_download, args=(keys_list[id],))
+        process = Process(target=private_download, args=(keys_list[id], config.CONFIG))
         processes.append(process)
 
     # start all processes

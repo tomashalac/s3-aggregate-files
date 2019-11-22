@@ -10,6 +10,8 @@ Some Amazon services log events to S3 as small files, this program groups them i
  
  # Lambda Test Event
  It is recommended to put the maximum CPU and a high timeout in  AWS Lambda.
+ * Handler: aggregateS3/main.lambda_handler
+ * Runtime: Python3.7
  ```json
  {
   "bucket_download": "THE_NAME_OF_THE_BUCKET_FOR_DOWNLOAD",
@@ -34,6 +36,12 @@ Some Amazon services log events to S3 as small files, this program groups them i
  * delete_old_file
  * max_keys
  * bucket_download_prefix
+ * only_download
+ * local_folder_to_download
+ * aws_access_key_id
+ * aws_secret_access_key
+ 
+ You can create a config.json file in case you are running it with terminal.
  
  # Use example
  You want to run athena on cloudfront logs, this script by grouping the files reduces the costs of S3.
