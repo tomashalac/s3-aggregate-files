@@ -8,7 +8,7 @@ def lambda_handler(event, context):
     print("Start of S3 Aggregate Files")
     config.CONFIG = config.Config(event)
 
-    list_keys, suffix = parallel_download.download_all_files()
+    suffix, list_keys = parallel_download.download_all_files()
 
     if config.CONFIG.only_download:
         print("All "+str(len(list_keys))+" files were downloaded to the computer.")

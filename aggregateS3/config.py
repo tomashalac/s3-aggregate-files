@@ -1,5 +1,6 @@
 import os
 import json
+import random
 
 CONFIG = None
 
@@ -8,6 +9,7 @@ class Config:
 
     def __init__(self, event):
 
+        self.config_file = None
         if os.path.exists("config.json"):
             with open("config.json") as config:
                 self.config_file = json.load(config)
@@ -31,14 +33,14 @@ class Config:
         self.max_keys = int(self.get_key("max_keys", 1000))
         self.bucket_download_prefix = self.get_key("bucket_download_prefix", "")
         self.only_download = bool(self.get_key("only_download", False, show_warning=False))
-        self.local_folder_to_download = self.get_key("local_folder_to_download", "/tmp/", show_warning=False)
+        self.local_folder_to_download = self.get_key("local_folder_to_download", "/tmp/" + str(random.randint(0, 1000000)) + "/", show_warning=False) #Lambda not empty tmp between runs
         self.aws_access_key_id = self.get_key("aws_access_key_id", None, show_warning=False)
         self.aws_secret_access_key = self.get_key("aws_secret_access_key", None, show_warning=False)
 
     def get_key(self, key, default, show_warning=True, has_default=True):
         if key in self.json:
             return self.json[key]
-        if key in self.config_file:
+        if self.config_file and key in self.config_file:
             return self.config_file[key]
 
         if has_default:

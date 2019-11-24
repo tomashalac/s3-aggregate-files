@@ -13,7 +13,7 @@ def aggregate_files(list_keys, suffix):
     size = 0
 
     for file_key in list_keys:
-        filename = "/tmp/" + file_key.replace('/', '_')
+        filename = config.CONFIG.local_folder_to_download + file_key.replace('/', '_')
         file_size = os.path.getsize(filename)
 
         if size + file_size > config.CONFIG.max_size_bytes:
@@ -37,19 +37,19 @@ def do_aggregate(list_files, total_size, suffix):
     key = datetime.now().strftime(config.CONFIG.output_file) + "." + suffix
     tmp_filename = str(randint(0, 10000000)) + ".txt"
 
-    with open('/tmp/' + tmp_filename, 'wb') as outfile:
+    with open(config.CONFIG.local_folder_to_download + tmp_filename, 'wb') as outfile:
         for filename, file_key in list_files:
             with open(filename, "rb") as infile:
                 outfile.write(infile.read())
 
     # Basic check before update
-    if os.path.getsize("/tmp/" + tmp_filename) != total_size:
-        print("The size are not equal, total: " + str(total_size) + " file: " + str(os.path.getsize("/tmp/" + tmp_filename)))
+    if os.path.getsize(config.CONFIG.local_folder_to_download + tmp_filename) != total_size:
+        print("The size are not equal, total: " + str(total_size) + " file: " + str(os.path.getsize(config.CONFIG.local_folder_to_download + tmp_filename)))
         return False
 
     # Upload to AWS S3
-    print("New file size: " + human_readable_size(os.path.getsize('/tmp/' + tmp_filename)))
-    s3.upload_file(Filename='/tmp/' + tmp_filename, Bucket=config.CONFIG.bucket_upload,
+    print("New file size: " + human_readable_size(os.path.getsize(config.CONFIG.local_folder_to_download + tmp_filename)))
+    s3.upload_file(Filename=config.CONFIG.local_folder_to_download + tmp_filename, Bucket=config.CONFIG.bucket_upload,
                    Key=key)
 
     if config.CONFIG.delete_old_file:
@@ -69,7 +69,7 @@ def is_valid_upload(total_size, key, tmp_filename):
         print("The file was not found in S3: " + key)
         return False
 
-    md5_value = md5("/tmp/" + tmp_filename)
+    md5_value = md5(config.CONFIG.local_folder_to_download + tmp_filename)
     etag = head["ETag"].replace('"', "")
 
     # We validate in X different ways that the file is uploaded correctly, they are redundant.
@@ -88,10 +88,11 @@ def delete_files(list_files):
     if not config.CONFIG.delete_old_file:
         return False
 
+    print("Start deleting... in S3")
     for filename, file_key in list_files:
-        print("Deleting key: " + file_key)
         s3.delete_object(Bucket=config.CONFIG.bucket_download, Key=file_key)
 
+    print("End deleting... " + str(len(list_files)) + " deleted files")
     return True
 
 def human_readable_size(size, decimal_places=3):
