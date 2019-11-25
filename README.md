@@ -1,5 +1,6 @@
 # S3 Aggregate Files
 Some Amazon services log events to S3 as small files, this program groups them in 128Mb files to make it easier to analyze them with Athena.
+It also allows you to download an entire aws bucket, or a specific amount of files.
 
 
 # Requirements
@@ -45,6 +46,13 @@ Some Amazon services log events to S3 as small files, this program groups them i
  
  # Use example
  You want to run athena on cloudfront logs, this script by grouping the files reduces the costs of S3.
+
+ # Athena
+ If empty records appear in the queries it is because of the cloudfront comments in the files,
+  I recommend adding in the query 
+  ```sql
+  WHERE date is not null
+  ```
 
  # Warning
  Use this code at **your own risk**, errors in amazon can become expensive, fast.
