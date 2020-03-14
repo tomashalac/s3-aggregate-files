@@ -26,6 +26,14 @@ It also allows you to download an entire aws bucket, or a specific amount of fil
 }
 ```
 
+## Kinesis Firehose Config
+ * Prefix: logs/!{timestamp:yyyy/MM/dd}/
+ * Error prefix: errors/result=!{firehose:error-output-type}/!{timestamp:yyyy/MM/dd}/
+ * Buffer size: 128
+ * Buffer interval: 900
+ * S3 compression: Disabled
+ * S3 encryption: Disabled
+
 ## Required
  * bucket_download
  * bucket_upload
